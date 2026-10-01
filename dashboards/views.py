@@ -2,8 +2,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from blogs.models import Blog, category
 from django.contrib.auth.decorators import login_required
-
-from dashboards.forms import CategoryForm
+from django.utils.text import slugify
+from dashboards.forms import BlogPostForm, CategoryForm
 
 # Create your views here. 
 @login_required(login_url='login')
@@ -49,3 +49,30 @@ def delete_category(request,pk):
     Category.delete()
 
     return redirect('categories')
+
+def posts(request):
+    posts = Blog.objects.all()
+    context={
+        'posts':posts,
+    }
+    return render(request,'dashboard/posts.html',context)
+
+def add_post(request):
+    if request.method=='POST':
+        form=BlogPostForm(request.POST,request.FILES)
+        if form.is_valid():
+            post=form.save(commit=False) # temprorily saving the form
+            post.author=request.user
+            post.save()
+            title=form.cleaned_data['title']
+            post.slug=slugify(title) + '-' + str(post.id)
+            # post.slug = slugify(post.title)
+            post.save()
+            return redirect('posts')
+        
+            
+    form=BlogPostForm()
+    context={
+        'form':form,
+    }
+    return render(request,'dashboard/add_post.html',context)
